@@ -19,7 +19,7 @@ import WebKit
 
 public class XWVChannel : NSObject, WKScriptMessageHandler {
     private(set) public var identifier: String?
-    public let thread: NSThread?
+    public let runLoop: NSRunLoop?
     public let queue: dispatch_queue_t?
     private(set) public weak var webView: WKWebView?
     var typeInfo: XWVMetaObject!
@@ -46,17 +46,21 @@ public class XWVChannel : NSObject, WKScriptMessageHandler {
     public convenience init(webView: WKWebView) {
         self.init(webView: webView, queue: XWVChannel.defaultQueue)
     }
+    public convenience init(webView: WKWebView, thread: NSThread) {
+        self.init(webView: webView, runLoop: thread.runLoop)
+    }
 
     public init(webView: WKWebView, queue: dispatch_queue_t) {
+        assert(dispatch_queue_get_label(queue).memory != 0, "Queue must has a label")
         self.webView = webView
         self.queue = queue
-        thread = nil
+        runLoop = nil
         webView.prepareForPlugin()
     }
 
-    public init(webView: WKWebView, thread: NSThread) {
+    public init(webView: WKWebView, runLoop: NSRunLoop) {
         self.webView = webView
-        self.thread = thread
+        self.runLoop = runLoop
         queue = nil
         webView.prepareForPlugin()
     }
@@ -177,5 +181,11 @@ public class XWVChannel : NSObject, WKScriptMessageHandler {
             "})(XWVPlugin.createPlugin('\(identifier!)', '\(principal.namespace)', \(base)));\n",
             forKey: ".global"
         )
+    }
+}
+
+extension NSThread {
+    var runLoop: NSRunLoop {
+        return invoke(NSRunLoop.self, selector: "currentRunLoop", withArguments: [], onThread: self) as! NSRunLoop
     }
 }

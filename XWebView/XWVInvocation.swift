@@ -19,28 +19,11 @@ import ObjectiveC
 
 public class XWVInvocation {
     public final let target: AnyObject
-    private let queue: dispatch_queue_t?
     private let thread: NSThread?
 
-    public enum Option {
-        case None
-        case Queue(queue: dispatch_queue_t)
-        case Thread(thread: NSThread)
-    }
-
-    public init(target: AnyObject, option: Option = .None) {
+    public init(target: AnyObject, thread: NSThread? = nil) {
         self.target = target
-        switch option {
-        case .None:
-            self.queue = nil
-            self.thread = nil
-        case .Queue(let queue):
-            self.queue = queue
-            self.thread = nil
-        case .Thread(let thread):
-            self.thread = thread
-            self.queue = nil
-        }
+        self.thread = thread
     }
 
     public class func construct(`class`: AnyClass, initializer: Selector = Selector("init"), withArguments arguments: [Any!] = []) -> AnyObject? {
@@ -56,16 +39,10 @@ public class XWVInvocation {
     }
     // No callback support, so return value is expected to lose.
     public func asyncCall(selector: Selector, withArguments arguments: [Any!] = []) {
-        if queue == nil {
-            invoke(target, selector: selector, withArguments: arguments, onThread: thread, waitUntilDone: false)
-        } else {
-            dispatch_async(queue!) {
-                invoke(self.target, selector: selector, withArguments: arguments)
-            }
-        }
+        invoke(target, selector: selector, withArguments: arguments, onThread: thread, waitUntilDone: false)
     }
 
-    // Objective-C interface
+    /* Objective-C interface
     // These methods accept parameters in ObjC 'id' instead of Swift 'Any' type.
     // Meanwhile, arguments which are NSNull will be converted to nil before calling.
     // Return value in scalar type will be converted to object type if feasible.
@@ -77,7 +54,7 @@ public class XWVInvocation {
     @objc public func asyncCall(selector: Selector, withObjects objects: [AnyObject]?) {
         let args: [Any!] = objects?.map{ $0 !== NSNull() ? ($0 as Any) : nil } ?? []
         asyncCall(selector, withArguments: args)
-    }
+    }*/
 
     // Syntactic sugar for calling method
     public subscript (selector: Selector) -> (Any!...)->Any! {
@@ -305,7 +282,7 @@ public func castToObjectFromAny(value: Any!) -> AnyObject! {
     if let v = value as? UnicodeScalar  { return NSNumber(unsignedInt: v.value) } else
     if let s = value as? Selector       { return s.description } else
     if let p = value as? COpaquePointer { return NSValue(pointer: UnsafePointer<Void>(p)) }
-    //assertionFailure("Can't convert '\(value.dynamicType)' to AnyObject")
+    assert(value is Void, "Can't convert '\(value.dynamicType)' to AnyObject")
     return nil
 }
 
