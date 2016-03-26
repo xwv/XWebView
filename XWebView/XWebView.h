@@ -54,4 +54,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)invokeWithTarget:(id)target;
 @end
 
+@interface _InitSelector: NSObject
+// Init with script
+- (id)initByScriptWithArguments:(va_list)args;
+
+@end
+
 NS_ASSUME_NONNULL_END
