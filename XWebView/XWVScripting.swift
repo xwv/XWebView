@@ -27,3 +27,7 @@ import Foundation
     @objc optional static func isSelectorExcluded(fromScript selector: Selector) -> Bool
     @objc optional static func isKeyExcluded(fromScript name: UnsafePointer<Int8>) -> Bool
 }
+
+@objc public protocol XWVConstructible : class {
+    @objc init(scriptObjects: [Any]?)
+}

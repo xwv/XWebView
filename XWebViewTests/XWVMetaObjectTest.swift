@@ -175,13 +175,13 @@ class XWVMetaObjectTest: XCTestCase {
     }
 
     func testForConstructor2() {
-        class TestForConstructor {
-            @objc init(byScriptWithArguments: [Any]) {}
+        class TestForConstructor: XWVConstructible {
+            @objc required init(scriptObjects: [Any]?) {}
         }
         let meta = XWVMetaObject(plugin: TestForConstructor.self)
         if let member = meta[""] {
             XCTAssertTrue(member.isInitializer)
-            XCTAssertTrue(member.selector == #selector(TestForConstructor.init(byScriptWithArguments:)))
+            XCTAssertTrue(member.selector == #selector(TestForConstructor.init(scriptObjects:)))
             XCTAssertTrue(member.type == "#p")
         } else {
             XCTFail()

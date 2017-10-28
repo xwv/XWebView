@@ -50,6 +50,13 @@ class ConstructorPlugin : XWVTestCase {
             return selector == #selector(Plugin2.init(expectation:)) ? "" : nil
         }
     }
+    class Plugin3 : NSObject, XWVConstructible {
+        required init(scriptObjects arguments: [Any]?) {
+            if let exp = arguments?.first as? XWVScriptObject {
+                exp.callMethod("fulfill", with: nil, completionHandler: nil)
+            }
+        }
+    }
 
     let namespace = "xwvtest"
 
@@ -79,6 +86,13 @@ class ConstructorPlugin : XWVTestCase {
         let script = "(new \(namespace)(expectation('\(desc)'))).then(function(o){o.dispose();})"
         _ = expectation(description: desc)
         loadPlugin(Plugin2(expectation: nil), namespace: namespace, script: script)
+        waitForExpectations()
+    }
+    func testConstructible() {
+        let desc = "constructible"
+        let script = "(new \(namespace)(expectation('\(desc)')))"
+        _ = expectation(description: desc)
+        loadPlugin(Plugin3(scriptObjects: nil), namespace: namespace, script: script)
         waitForExpectations()
     }
 }
