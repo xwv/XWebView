@@ -98,7 +98,7 @@ var NSInvocation: NSInvocationProtocol.Type = {
     }
 
     if selector.family == .init_ {
-        // Self should be consumed for method belongs to init famlily
+        // Self should be consumed for method belongs to init family
         _ = Unmanaged.passRetained(target)
     }
     inv.selector = selector
@@ -217,7 +217,36 @@ private extension NSNumber {
     }
 }
 
-private extension Selector {
+extension Selector {
+    init(getterOf property: objc_property_t) {
+        if let attr = property_copyAttributeValue(property, "G") {
+            // The property defines a custom getter selector name.
+            self = sel_getUid(attr)
+            free(attr)
+        } else {
+            self = sel_getUid(property_getName(property))
+        }
+    }
+    init?(setterOf property: objc_property_t) {
+        if let attr = property_copyAttributeValue(property, "R") {
+            free(attr)
+            return nil
+        }
+        if let attr = property_copyAttributeValue(property, "S") {
+            // The property defines a custom setter selector name.
+            self.init(String(cString: attr))
+            free(attr)
+        } else {
+            let name = String(cString: property_getName(property))
+            self.init("set\(name.prefix(1).uppercased())\(name.dropFirst()):")
+        }
+    }
+    init(_ method: Method) {
+        self = method_getName(method)
+    }
+}
+
+extension Selector {
     enum Family : Int8 {
         case none        = 0
         case alloc       = 97
@@ -301,19 +330,22 @@ public class XWVInvocation {
 extension XWVInvocation {
     // Property accessor
     public func value(of name: String) -> Any! {
-        guard let getter = getter(of: name) else {
+        guard let property = class_getProperty(type(of: target), name) else {
             assertionFailure("Property '\(name)' does not exist")
             return Void()
         }
-        return call(getter)
+        return call(Selector(getterOf: property))
     }
     public func setValue(_ value: Any!, to name: String) {
-        guard let setter = setter(of: name) else {
-            assertionFailure("Property '\(name)' " +
-                (getter(of: name) == nil ? "does not exist" : "is readonly"))
+        precondition(!(value is Void))
+        guard let property = class_getProperty(type(of: target), name) else {
+            assertionFailure("Property '\(name)' does not exist")
             return
         }
-        precondition(!(value is Void))
+        guard let setter = Selector(setterOf: property) else {
+            assertionFailure("Property '\(name)' is readonly")
+            return
+        }
         call(setter, with: [value])
     }
 
@@ -325,38 +357,5 @@ extension XWVInvocation {
         set {
             setValue(newValue, to: name)
         }
-    }
-
-    private func getter(of name: String) -> Selector? {
-        guard let property = class_getProperty(type(of: target), name) else {
-            return nil
-        }
-        guard let attr = property_copyAttributeValue(property, "G") else {
-            return Selector(name)
-        }
-
-        // The property defines a custom getter selector name.
-        let getter = Selector(String(cString: attr))
-        free(attr)
-        return getter
-    }
-    private func setter(of name: String) -> Selector? {
-        guard let property = class_getProperty(type(of: target), name) else {
-            return nil
-        }
-
-        var setter: Selector? = nil
-        var attr = property_copyAttributeValue(property, "R")
-        if attr == nil {
-            attr = property_copyAttributeValue(property, "S")
-            if attr == nil {
-                setter = Selector("set\(name.prefix(1).uppercased())\(name.dropFirst()):")
-            } else {
-                // The property defines a custom setter selector name.
-                setter = Selector(String(cString: attr!))
-            }
-        }
-        free(attr)
-        return setter
     }
 }

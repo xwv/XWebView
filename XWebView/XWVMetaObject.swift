@@ -148,39 +148,24 @@ class XWVMetaObject {
         if let propertyList = class_copyPropertyList(plugin, &count) {
             defer { free(propertyList) }
             for i in 0 ..< Int(count) {
-                let name = String(cString: property_getName(propertyList[i]))
                 // get getter
-                let getter: Selector
-                if let attr = property_copyAttributeValue(propertyList[i], "G") {
-                    getter = Selector(String(cString: attr))
-                    free(attr)
-                } else {
-                    getter = Selector(name)
-                }
+                let getter = Selector(getterOf: propertyList[i])
                 if known.contains(getter) {
                     continue
                 }
                 known.insert(getter)
 
                 // get setter if readwrite
-                var setter: Selector? = nil
-                var attr = property_copyAttributeValue(propertyList[i], "R")
-                if attr == nil {
-                    attr = property_copyAttributeValue(propertyList[i], "S")
-                    if attr == nil {
-                        setter = Selector("set\(name.prefix(1).uppercased())\(name.dropFirst()):")
-                        print(setter!.description)
-                    } else {
-                        setter = Selector(String(cString: attr!))
-                    }
+                var setter = Selector(setterOf: propertyList[i])
+                if setter != nil {
                     if known.contains(setter!) {
                         setter = nil
                     } else {
                         known.insert(setter!)
                     }
                 }
-                free(attr)
 
+                let name = String(cString: property_getName(propertyList[i]))
                 let info = Member.Property(getter: getter, setter: setter)
                 if !callback(name, info) {
                     return false
@@ -196,7 +181,7 @@ class XWVMetaObject {
                 if !known.contains(sel) && !sel.description.hasPrefix(".") {
                     let arity = Int32(method_getNumberOfArguments(methodList[i])) - 2
                     let member: Member
-                    if sel.description.hasPrefix("init") {
+                    if sel.family == .init_ {
                         member = Member.Initializer(selector: sel, arity: arity)
                     } else {
                         member = Member.Method(selector: sel, arity: arity)
