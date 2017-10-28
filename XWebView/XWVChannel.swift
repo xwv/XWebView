@@ -126,7 +126,7 @@ public class XWVChannel : NSObject, WKScriptMessageHandler {
                 }
             } else if opcode == "+" {
                 // Create instance
-                let args = body["$operand"] as? [Any]
+                let args = body["$operand"] as? [Any] ?? []
                 let namespace = "\(principal.namespace)[\(target)]"
                 instances[target] = XWVBindingObject(namespace: namespace, channel: self, arguments: args)
                 log("+Instance \(target) is bound to \(namespace)")

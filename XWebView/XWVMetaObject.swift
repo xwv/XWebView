@@ -58,24 +58,21 @@ class XWVMetaObject {
             return nil
         }
         var type: String {
-            let promise: Bool
             let arity: Int32
             switch self {
-            case let .Method(selector, a):
-                promise = selector.description.hasSuffix(":promiseObject:") ||
-                          selector.description.hasSuffix("PromiseObject:")
+            case let .Method(_, a):
                 arity = a
             case let .Initializer(_, a):
-                promise = true
-                arity = a < 0 ? a: a + 1
-            default:
-                promise = false
-                arity = -1
-            }
-            if !promise && arity < 0 {
+                arity = a
+            case .Property(_,_):
                 return ""
             }
-            return "#" + (arity >= 0 ? "\(arity)" : "") + (promise ? "p" : "a")
+            switch arity {
+            case Int32.max: return "#a"
+            case Int32.min: return "#p"
+            case let a where a < 0: return "#\(-arity - 1)p"
+            default: return "#\(arity)a"
+            }
         }
     }
 
@@ -96,19 +93,23 @@ class XWVMetaObject {
             var name = name
             var member = member
             switch member {
-            case let .Method(selector, _):
+            case let .Method(selector, arity):
                 if let cls = plugin as? XWVScripting.Type {
                     if cls.isSelectorExcluded?(fromScript: selector) ?? false {
                         return true
                     }
                     if selector == #selector(XWVScripting.invokeDefaultMethod(withArguments:)) {
-                        member = .Method(selector: selector, arity: -1)
+                        member = .Method(selector: selector, arity: Int32.max)
                         name = ""
                     } else {
                         name = cls.scriptName?(for: selector) ?? name
                     }
                 } else if name.first == "_" {
                     return true
+                }
+                if selector.description.hasSuffix(":promiseObject:") ||
+                    selector.description.hasSuffix("PromiseObject:") {
+                    member = .Method(selector: selector, arity: -arity)
                 }
 
             case .Property(_, _):
@@ -123,12 +124,13 @@ class XWVMetaObject {
                     return true
                 }
 
-            case let .Initializer(selector, _):
+            case let .Initializer(selector, arity):
                 if selector == Selector(("initByScriptWithArguments:")) {
-                    member = .Initializer(selector: selector, arity: -1)
+                    member = .Initializer(selector: selector, arity: Int32.min)
                     name = ""
                 } else if let cls = plugin as? XWVScripting.Type {
                     name = cls.scriptName?(for: selector) ?? name
+                    member = .Initializer(selector: selector, arity: -arity - 1)
                 }
                 if !name.isEmpty {
                     return true

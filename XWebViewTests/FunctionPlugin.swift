@@ -32,6 +32,16 @@ class FunctionPlugin : XWVTestCase {
             return selector == #selector(Plugin.defaultMethod) ? "" : nil
         }
     }
+    class Plugin2 : NSObject, XWVScripting {
+        private var expectation: XCTestExpectation?
+        init(expectation: XCTestExpectation?) {
+            self.expectation = expectation
+        }
+        @objc func invokeDefaultMethod(withArguments args: [Any]!) -> Any! {
+            expectation?.fulfill()
+            return Void()
+        }
+    }
 
     let namespace = "xwvtest"
 
@@ -52,6 +62,19 @@ class FunctionPlugin : XWVTestCase {
         let script = "if (\(namespace).property == 123) fulfill('\(desc)');"
         _ = expectation(description: desc)
         loadPlugin(Plugin(expectation: nil), namespace: namespace, script: script)
+        waitForExpectations()
+    }
+
+    func testDefaultMethod2() {
+        let desc = "defaultMethod2"
+        let script = "if (\(namespace) instanceof Function) fulfill('\(desc)')"
+        _ = expectation(description: desc)
+        loadPlugin(Plugin2(expectation: nil), namespace: namespace, script: script)
+        waitForExpectations()
+    }
+    func testCallDefaultMethod2() {
+        let exp = expectation(description: "callDefaultMethod2")
+        loadPlugin(Plugin2(expectation: exp), namespace: namespace, script: "\(namespace)()")
         waitForExpectations()
     }
 }

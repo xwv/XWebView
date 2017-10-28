@@ -117,12 +117,13 @@ XWVPlugin.invokeNative = function(name) {
         // Parse type coding
         var t = name.split('#');
         name = t[0];
-        args.length = parseInt(t[1], 10) || args.length;
+        var arity = parseInt(t[1], 10);
+        args.length = isNaN(arity) ? 1 : arity;
         if (t[1].slice(-1) == 'p') {
             // Return a Promise object for async operation
             args.unshift(name);
             return new Promise((function(args, resolve, reject) {
-                args[args.length - 1] = {'resolve': resolve, 'reject': reject};
+                args.push({'resolve': resolve, 'reject': reject});
                 XWVPlugin.invokeNative.apply(this, args);
             }).bind(this, args));
         }

@@ -28,29 +28,32 @@ final class XWVBindingObject : XWVScriptObject {
         bind()
     }
 
-    init?(namespace: String, channel: XWVChannel, arguments: [Any]?) {
+    init?(namespace: String, channel: XWVChannel, arguments: [Any]) {
         self.channel = channel
         super.init(namespace: namespace, webView: channel.webView!)
         let cls: AnyClass = channel.typeInfo.plugin
-        let member = channel.typeInfo[""]
-        guard member != nil, case .Initializer(let selector, let arity) = member! else {
+        guard let member = channel.typeInfo[""],
+            case .Initializer(let selector, let arity) = member else {
             log("!Plugin class \(cls) is not a constructor")
             return nil
         }
 
-        var arguments = arguments?.map(wrapScriptObject) ?? []
-        var promise: XWVScriptObject?
-        if arity == arguments.count - 1 || arity < 0 {
-            promise = arguments.last as? XWVScriptObject
-            arguments.removeLast()
+        assert(arity < 0)
+        var args = arguments.map(wrapScriptObject)
+        let nargs = (arity != Int32.min ? Int(-arity) : args.count) - 1
+        guard args.count > nargs,
+            let promise = args[nargs] as? XWVScriptObject else {
+            log("!Invalid arguments")
+            return nil
         }
-        if selector == Selector(("initByScriptWithArguments:")) {
-            arguments = [arguments]
+        args.removeLast(args.count - nargs)
+        if arity == Int32.min {
+            args = [args]
         }
 
         plugin = invoke(#selector(NSProxy.alloc), of: cls) as AnyObject
         if plugin != nil {
-            plugin = performSelector(selector, with: arguments) as AnyObject!
+            plugin = performSelector(selector, with: args) as AnyObject!
         }
         guard plugin != nil else {
             log("!Failed to create instance for plugin class \(cls)")
@@ -59,7 +62,7 @@ final class XWVBindingObject : XWVScriptObject {
 
         bind()
         syncProperties()
-        promise?.callMethod("resolve", with: [self], completionHandler: nil)
+        promise.callMethod("resolve", with: [self], completionHandler: nil)
     }
 
     deinit {
@@ -93,10 +96,13 @@ final class XWVBindingObject : XWVScriptObject {
 
     // Dispatch operation to plugin object
     func invokeNativeMethod(name: String, with arguments: [Any]) {
-        guard let selector = channel.typeInfo[name]?.selector else { return }
+        guard let member = channel.typeInfo[name],
+            case .Method(let selector, let arity) = member else {
+            return
+        }
 
         var args = arguments.map(wrapScriptObject)
-        if plugin is XWVScripting && name.isEmpty && selector == #selector(XWVScripting.invokeDefaultMethod(withArguments:)) {
+        if arity == Int32.max || arity == Int32.min {
             args = [args];
         }
         _ = performSelector(selector, with: args, waitUntilDone: false)

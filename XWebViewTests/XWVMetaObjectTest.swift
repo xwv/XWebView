@@ -77,14 +77,14 @@ class XWVMetaObjectTest: XCTestCase {
         if let member = meta["methodWithPromiseObject"] {
             XCTAssertTrue(member.isMethod)
             XCTAssertTrue(member.selector == #selector(TestForPromise.method(promiseObject:)))
-            XCTAssertTrue(member.type == "#1p")
+            XCTAssertTrue(member.type == "#0p")
         } else {
             XCTFail()
         }
         if let member = meta["methodWithArgument"] {
             XCTAssertTrue(member.isMethod)
             XCTAssertTrue(member.selector == #selector(TestForPromise.method(argument:promiseObject:)))
-            XCTAssertTrue(member.type == "#2p")
+            XCTAssertTrue(member.type == "#1p")
         } else {
             XCTFail()
         }
@@ -151,7 +151,7 @@ class XWVMetaObjectTest: XCTestCase {
         if let member = meta[""] {
             XCTAssertTrue(member.isMethod)
             XCTAssertTrue(member.selector == #selector(XWVScripting.invokeDefaultMethod(withArguments:)))
-            XCTAssertTrue(member.type == "")
+            XCTAssertTrue(member.type == "#a")
         } else {
             XCTFail()
         }
@@ -168,7 +168,7 @@ class XWVMetaObjectTest: XCTestCase {
         if let member = meta[""] {
             XCTAssertTrue(member.isInitializer)
             XCTAssertTrue(member.selector == #selector(TestForConstructor.init(argument:)))
-            XCTAssertTrue(member.type == "#2p")
+            XCTAssertTrue(member.type == "#1p")
         } else {
             XCTFail()
         }
