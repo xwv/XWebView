@@ -38,8 +38,8 @@ class ObjectPlugin : XWVTestCase {
         @objc func method(callback: XWVScriptObject) {
             callback.call(arguments: nil, completionHandler: nil)
         }
-        @objc func method(promiseObject: XWVScriptObject) {
-            promiseObject.callMethod("resolve", with: nil, completionHandler: nil)
+        @objc func method(handler: PromiseHandler) {
+            handler.fulfill()
         }
         @objc func method1() {
             guard let bindingObject = XWVScriptObject.bindingObject else { return }
@@ -115,7 +115,7 @@ class ObjectPlugin : XWVTestCase {
     }
     func testCallMethodWithPromise() {
         let desc = "callMethodWithPromise"
-        let script = "\(namespace).methodWithPromiseObject().then(function(){fulfill('\(desc)');})"
+        let script = "\(namespace).methodWithHandler().then(function(){fulfill('\(desc)');})"
         _ = expectation(description: desc)
         loadPlugin(Plugin(expectation: nil), namespace: namespace, script: script)
         waitForExpectations()

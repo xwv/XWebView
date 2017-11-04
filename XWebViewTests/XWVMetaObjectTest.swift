@@ -70,20 +70,20 @@ class XWVMetaObjectTest: XCTestCase {
 
     func testForPromise() {
         class TestForPromise {
-            @objc func method(promiseObject: XWVScriptObject) {}
-            @objc func method(argument: Any?, promiseObject: XWVScriptObject) {}
+            @objc func method(_: PromiseHandler) {}
+            @objc func method(argument: Any?, handler: PromiseHandler) {}
         }
         let meta = XWVMetaObject(plugin: TestForPromise.self)
-        if let member = meta["methodWithPromiseObject"] {
+        if let member = meta["method"] {
             XCTAssertTrue(member.isMethod)
-            XCTAssertTrue(member.selector == #selector(TestForPromise.method(promiseObject:)))
+            XCTAssertTrue(member.selector == #selector(TestForPromise.method(_:)))
             XCTAssertTrue(member.type == "#0p")
         } else {
             XCTFail()
         }
         if let member = meta["methodWithArgument"] {
             XCTAssertTrue(member.isMethod)
-            XCTAssertTrue(member.selector == #selector(TestForPromise.method(argument:promiseObject:)))
+            XCTAssertTrue(member.selector == #selector(TestForPromise.method(argument:handler:)))
             XCTAssertTrue(member.type == "#1p")
         } else {
             XCTFail()

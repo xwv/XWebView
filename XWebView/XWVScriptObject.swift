@@ -122,6 +122,23 @@ extension XWVScriptObject {
     }
 }
 
+public extension PromiseHandler {
+/*  init(_ object: XWVScriptObject) {
+        handler = Unmanaged<XWVScriptObject>.passRetained(object)
+    }
+    func release() {
+        _ = Unmanaged<XWVScriptObject>.release(handler)
+    }*/
+    func fulfill(arguments: [Any]? = nil) {
+        let obj = handler.takeUnretainedValue()
+        obj.callMethod("resolve", with: arguments, completionHandler: nil)
+    }
+    func reject(arguments: [Any]? = nil) {
+        let obj = handler.takeUnretainedValue()
+        obj.callMethod("reject", with: arguments, completionHandler: nil)
+    }
+}
+
 class XWVWindowObject: XWVScriptObject {
     private let origin: XWVObject
     init(webView: WKWebView) {

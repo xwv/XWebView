@@ -163,6 +163,17 @@ private enum ObjCType : CChar {
         if val == 0x72 {
             // skip const qualifier
             val = code.successor().pointee
+        } else if val == 0x7b {
+            // unbox structure type
+            var p = code
+            repeat {
+                p = p.successor()
+            } while p.pointee != 0x3d
+            p = p.successor()
+            if p.successor().pointee == 0x7d {
+                // support only one member
+                val = p.pointee
+            }
         }
         guard let type = ObjCType(rawValue: val) else {
             fatalError("Unknown ObjC type code: \(String(cString: code))")

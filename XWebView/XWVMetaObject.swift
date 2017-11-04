@@ -107,9 +107,17 @@ class XWVMetaObject {
                 } else if name.first == "_" {
                     return true
                 }
-                if selector.description.hasSuffix(":promiseObject:") ||
-                    selector.description.hasSuffix("PromiseObject:") {
-                    member = .Method(selector: selector, arity: -arity)
+                if arity > 0 {
+                    // check for promise handler
+                    var type = Array<CChar>(repeating: 0, count: 32)
+                    type.withUnsafeMutableBufferPointer {
+                        let last = UInt32(arity + 1)
+                        let method = class_getInstanceMethod(plugin, selector)
+                        method_getArgumentType(method!, last, $0.baseAddress, $0.count)
+                    }
+                    if strcmp(type, "{\(PromiseHandler.self)=@}") == 0 {
+                        member = .Method(selector: selector, arity: -arity)
+                    }
                 }
 
             case .Property(_, _):
